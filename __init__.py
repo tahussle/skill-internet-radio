@@ -21,6 +21,7 @@ import random
 from adapt.intent import IntentBuilder
 from mycroft.skills.core import MycroftSkill
 from mycroft.util.log import getLogger
+from mycroft.messagebus.message import Message
 try:
     from mycroft.skills.audioservice import AudioService
 except:
@@ -38,8 +39,26 @@ class InternetRadioSkill(MycroftSkill):
         super(InternetRadioSkill, self).__init__(name="InternetRadioSkill")
         self.audioservice = None
         self.process = None
+        self.emitter = None
+       
 
     def initialize(self):
+        super().initialize()
+        
+        self.audio_service = AudioService(self.bus)
+        
+        intent = IntentBuilder("PsytubeInternetRadioIntent").require(
+            "InternetRadioKeyword").require(
+            "PsytubeKeyword").build()
+        self.register_intent(intent, self.handle_psytube_intent)
+
+        self.audioservice = AudioService(bus=self.bus)
+        intent = IntentBuilder("PsytubeInternetRadioIntent").require(
+            "InternetRadioKeyword").require(
+            "PsytubeKeyword").build()
+        self.register_intent(intent, self.handle_psytube_intent)
+
+        self.audioservice = AudioService(bus=self.bus)
         intent = IntentBuilder("InternetRadioIntent").require(
              "InternetRadioKeyword").build()
         self.register_intent(intent, self.handle_intent)
@@ -153,8 +172,7 @@ class InternetRadioSkill(MycroftSkill):
             "PsytubeKeyword").build()
         self.register_intent(intent, self.handle_psytube_intent)
 
-        if AudioService:
-            self.audioservice = AudioService(self.emitter)
+        
 
     def handle_psytube_intent(self, message):
         self.stop()
@@ -418,7 +436,10 @@ class InternetRadioSkill(MycroftSkill):
 
     def stop(self):
         if self.audioservice:
-           self.audioservice.stop()
+            try:
+                self.audioservice.stop()
+            except AttributeError:
+                pass
         else:
             if self.process and self.process.poll() is None:
                self.process.terminate()
